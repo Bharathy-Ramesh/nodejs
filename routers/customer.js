@@ -234,6 +234,16 @@ routers.get('/order', ensureToken, (req,res,next)=>{
     })
 });
 
+routers.delete('/order',(req,res) =>{
+            Orders.deleteOne({productId:req.query.prodId,custId:req.query.custId}, (err,resp) => {
+                if(!err && resp){
+                    res.send(resp);
+                }else{
+                    console.log(err);
+                }
+            })
+})
+
 //module.exports = routers;
 //routers.ensureToken = ensureToken();
 module.exports = routers;
