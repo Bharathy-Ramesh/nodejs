@@ -22,7 +22,6 @@ app.use(function(req, res, next) {
     res.header("Access-Control-Expose-Headers", "xsrf-token");
     next();
   });
-
 app.use(customers);
 //app.use(products);
 

@@ -4,12 +4,12 @@ var path = require('path');
 const ObjectId = require('mongodb').ObjectId;
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-
-
-// routers.use('/test',(req, res, next) => {
-//     //console.log("Third Middleware");
-//     res.sendFile(path.join(__dirname, '../', 'view', 'index.html'));
-// })
+const multer = require('multer');
+var fs = require('fs');
+var path = require('path');
+const { query } = require('express');
+const uuid = require('uuid');
+const uuidv = uuid.v1();
 
 
 const Schema = mongoose.Schema;
@@ -242,6 +242,114 @@ routers.delete('/order',(req,res) =>{
                     console.log(err);
                 }
             })
+})
+
+//ReactJS
+
+const MIME_TYPE_MAP = {
+    'image/png':'png',
+    'image/jpg':'jpg',
+    'image/jpeg':'jpeg'
+}
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        debugger;
+        console.log('file', req.body);
+        cb(null, 'uploads/images')
+    },
+    filename: (req, file, cb) => {
+        console.log('file', file);
+        const ext = MIME_TYPE_MAP[file.mimetype];
+        cb(null, uuid() + '.' + ext);
+    }
+});
+  
+const upload = multer({
+    limits:500000,
+    storage: storage
+ });
+
+//const upload = multer({'dest':'uploads/'}).single('image')
+
+var imgSchema = new Schema({
+    name:String,
+    custId:String,
+    image:{
+        data:Buffer,
+        contentType:String
+    }
+})
+
+const imgDetail = mongoose.model('imgDetail',imgSchema);
+
+routers.post('/upload',upload.single('image'), (req,res) => {
+    console.log('upload',upload)
+        let docs = new imgDetail({
+            name:req.body.name,
+            custId:req.body.custId,
+            image:{
+                data:req.file,
+                contentType:'image/jpg'
+            }
+        })
+        //console.log('doc', docs);
+        docs.save().then( x => {
+            res.sendStatus(200);
+            console.log('success upload');
+        }).catch(err => {
+            res.sendStatus(500);
+        })
+    })    
+
+routers.get('/upload',(req,res,next)=>{
+    imgDetail.find({email:req.query.userId},(err,resp) => {
+        if(!err && resp){
+            console.log(resp);
+            res.send(resp[0]);
+        }else{
+            console.log(err);
+        }
+    })
+})
+
+//user
+
+var userSchema = new Schema({
+    name:String,
+    password:String,
+    email:String,
+    phoneNumber:String,
+    status:String,
+});
+const userDetail = mongoose.model('userDetail',userSchema);
+
+routers.post('/user', (req,res)=>{
+    console.log('user', req.body);
+    let doc = new userDetail({
+        name:req.body.username,
+        password:req.body.password,
+        email:req.body.email,
+        phoneNumber:req.body.phoneNumber
+    });
+    doc.save().then( x => {
+        res.sendStatus(200);
+    }).catch(err => {
+        res.sendStatus(500);
+    })
+});
+
+routers.get('/user',(req,res,next)=>{
+    userDetail.find({email:req.query.username,password:req.query.password},(err,resp) => {
+        let credentials = req.query; 
+        const token = jwt.sign({credentials}, 'my_secret_key')
+        if(!err && resp){
+            console.log(resp);
+            res.send({auth:true, token:token, data:resp[0]});
+        }else{
+            console.log(err);
+        }
+    })
 })
 
 //module.exports = routers;
